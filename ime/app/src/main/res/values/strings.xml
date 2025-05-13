@@ -949,4 +949,11 @@
     <string name="wizard_allow_notification_permission">Allow notifications from AnySoftKeyboard</string>
     <string name="setup_wizard_step_notification_permissions_details">In rare cases (for example app crashes) we would need to post a device notification. This is recommended but disallow notification will not affect the behavior of this app.</string>
     <string name="wizard_skip_notification_permission">Do not allow notifications</string>
+
+    <string name="click_again_to_start">Click again to start</string>
+    <string name="denied">Denied</string>
+    <string name="granted">Granted</string>
+    <string name="loading">Loading…</string>
+    <string name="need_enable_mic_permission">"You need to enable microphone permission."</string>
+    <string name="pause">Pause</string>
 </resources>

@@ -136,6 +136,13 @@ dependencies {
 
     implementation 'androidx.multidex:multidex:2.0.1'
 
+    implementation 'com.google.code.gson:gson:2.12.1'
+    // offline voice recognition
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'net.java.dev.jna:jna:5.13.0@aar'
+    implementation 'com.alphacephei:vosk-android:0.3.47@aar'
+    implementation project(':vosk_models')
+
     testImplementation project(path: ':ime:base-test')
     testImplementation 'com.github.triplet.simpleprovider:simpleprovider:1.1.0'
     testImplementation 'androidx.test.ext:junit:1.2.1'

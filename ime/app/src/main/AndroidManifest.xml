@@ -14,6 +14,8 @@
     <!-- required for the user dictionary (long press a word in the suggestions bar) -->
     <uses-permission android:name="android.permission.READ_USER_DICTIONARY" />
     <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
+    <!-- required for offline voice recognition -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- REQUIRED FOR THE CONTACTS DICTIONARY -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- currently, only support touch and fake-touch devices -->
@@ -108,7 +110,8 @@
             android:label="@string/ime_name"
             android:roundIcon="@mipmap/ic_launcher_round"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
+        <activity android:name="it.tiz.voicerecognition.VoiceRecognitionActivity" android:configChanges="orientation|screenSize|keyboardHidden">
+        </activity>
     </application>
 
     <queries>

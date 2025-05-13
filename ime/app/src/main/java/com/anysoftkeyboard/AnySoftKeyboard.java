@@ -32,12 +32,14 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SparseArrayCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
+
 import com.anysoftkeyboard.api.KeyCodes;
 import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.dictionaries.DictionaryAddOnAndBuilder;
@@ -55,7 +57,6 @@ import com.anysoftkeyboard.keyboards.views.AnyKeyboardView;
 import com.anysoftkeyboard.prefs.AnimationsLevel;
 import com.anysoftkeyboard.receivers.PackagesChangedReceiver;
 import com.anysoftkeyboard.rx.GenericOnError;
-import com.anysoftkeyboard.ui.VoiceInputNotInstalledActivity;
 import com.anysoftkeyboard.ui.dev.DevStripActionProvider;
 import com.anysoftkeyboard.ui.dev.DeveloperUtils;
 import com.anysoftkeyboard.ui.settings.MainSettingsActivity;
@@ -64,11 +65,21 @@ import com.google.android.voiceime.VoiceRecognitionTrigger;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.BuildConfig;
 import com.menny.android.anysoftkeyboard.R;
+
+import net.evendanan.pixel.GeneralDialogController;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import net.evendanan.pixel.GeneralDialogController;
+
+import it.tiz.moduli.Callable;
+import it.tiz.moduli.android.AndroidModule;
+import it.tiz.moduli.thread.ThreadModule;
+import it.tiz.voicerecognition.VoiceRecognitionActivity;
+import it.tiz.voicerecognition.VoiceRecognitionUtil;
+import it.tiz.voicerecognition.bean.UiBean;
+import it.tiz.voicerecognition.enums.UiStatus;
 
 /** Input method implementation for QWERTY-ish keyboard. */
 public abstract class AnySoftKeyboard extends AnySoftKeyboardColorizeNavBar {
@@ -92,7 +103,9 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardColorizeNavBar {
 
   private boolean mAutoCap;
   private boolean mKeyboardAutoCap;
-
+  
+  private static final UiBean uiBean = new UiBean();
+  
   private static boolean isBackWordDeleteCodePoint(int c) {
     return Character.isLetterOrDigit(c);
   }
@@ -463,15 +476,51 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardColorizeNavBar {
         sendDownUpKeyEvents(KeyEvent.KEYCODE_MOVE_END);
         break;
       case KeyCodes.VOICE_INPUT:
-        if (mVoiceRecognitionTrigger.isInstalled()) {
-          mVoiceRecognitionTrigger.startVoiceRecognition(
-              getCurrentAlphabetKeyboard().getDefaultDictionaryLocale());
-        } else {
-          Intent voiceInputNotInstalledIntent =
-              new Intent(getApplicationContext(), VoiceInputNotInstalledActivity.class);
-          voiceInputNotInstalledIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          startActivity(voiceInputNotInstalledIntent);
+        Context context=getApplicationContext();
+        key.icon= VoiceRecognitionUtil.initIcon(context);
+        if(uiBean.getButtonIcon() ==null) {
+          uiBean.setButtonStatus(UiStatus.OFF);
         }
+        uiBean.setButtonIcon(key.icon);
+        // check
+        if(VoiceRecognitionActivity.voiceRecognition ==null) {
+          AndroidModule.toastShort(context,R.string.loading);
+          VoiceRecognitionUtil.iconChangeStatus(uiBean,UiStatus.LOADING);
+          ThreadModule thread = new ThreadModule(null){
+            @Override
+            public void run() {
+              Intent intent = new Intent(context, VoiceRecognitionActivity.class);
+              intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+              startActivity(intent);
+            }
+          };
+          thread.start();
+        } else {
+          Callable<String> callbackWrite = input -> {
+			for (int i = 0; i < input.length(); i++) {
+			  char c = input.charAt(i);
+			  sendKeyChar(c);
+			}
+		  };
+          
+          // start
+          VoiceRecognitionActivity.voiceRecognition.start(callbackWrite);
+          // icon
+          UiStatus stato=UiStatus.OFF;
+          if(VoiceRecognitionActivity.voiceRecognition.isOn()) {
+            stato=UiStatus.ON;
+          }
+          VoiceRecognitionUtil.iconChangeStatus(uiBean,stato);
+        }
+//        if (mVoiceRecognitionTrigger.isInstalled()) {
+//          mVoiceRecognitionTrigger.startVoiceRecognition(
+//              getCurrentAlphabetKeyboard().getDefaultDictionaryLocale());
+//        } else {
+//          Intent voiceInputNotInstalledIntent =
+//              new Intent(getApplicationContext(), VoiceInputNotInstalledActivity.class);
+//          voiceInputNotInstalledIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//          startActivity(voiceInputNotInstalledIntent);
+//        }
         break;
       case KeyCodes.CANCEL:
         if (!handleCloseRequest()) {
@@ -1108,7 +1157,8 @@ public abstract class AnySoftKeyboard extends AnySoftKeyboardColorizeNavBar {
   @Override
   public void onWindowHidden() {
     super.onWindowHidden();
-
+    
+    VoiceRecognitionUtil.onHiddenWindow(uiBean);
     abortCorrectionAndResetPredictionState(true);
   }
 
