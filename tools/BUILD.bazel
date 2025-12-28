@@ -57,6 +57,12 @@ java_binary(
 )
 
 java_binary(
+    name = "crowdin",
+    main_class = "com.crowdin.cli.Cli",
+    runtime_deps = ["@crowdin_cli//:crowdin-cli.jar"],
+)
+
+java_binary(
     name = "ktfmt",
     args = [
         "--set-exit-if-changed",
@@ -77,4 +83,9 @@ format_multirun(
     markdown = ":prettier",
     starlark = "@buildifier_prebuilt//:buildifier",
     yaml = ":yamlfmt_runner",
+)
+
+config_setting(
+    name = "collect_code_coverage",
+    values = {"collect_code_coverage": "true"},
 )

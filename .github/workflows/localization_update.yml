@@ -12,6 +12,7 @@ on:
     paths:
       - '**/res/values/strings.xml'
       - '.github/workflows/localization_update.yml'
+      - 'js/localization_tools/**'
       - 'crowdin.yml'
 env:
   TERM: dumb
@@ -20,39 +21,37 @@ env:
 jobs:
   localization-update:
     runs-on: ubuntu-24.04
-    container: ghcr.io/menny/android:1.21.2
     steps:
       - uses: actions/checkout@v4.2.2
         with:
           token: ${{ secrets.BOT_MASTER_RW_GITHUB_TOKEN }}
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
       - name: fix git safe dir
         run: git config --global --add safe.directory "${PWD}"
       - name: Delete current translations
-        run: git ls-files "**/values-*/strings.xml" | xargs rm -f
-      - name: Crowdin push
-        uses: crowdin/github-action@v2.3.0
-        with:
-          upload_sources: true
-          upload_translations: false
-          download_translations: false
-          config: crowdin.yml
-      - name: Crowdin pull
-        uses: crowdin/github-action@v2.3.0
-        with:
-          upload_sources: false
-          upload_translations: false
-          download_translations: true
-          create_pull_request: false
-          push_translations: false
-          config: crowdin.yml
+        run: bazel run //js/localization_tools -- delete --crowdinFile="$PWD/crowdin.yml"
+      - name: Crowdin upload default strings
+        run: bazel run //tools:crowdin -- upload --config="$PWD/crowdin.yml"
+      - name: Crowdin download all translations
+        run: bazel run //tools:crowdin -- download translations --all --skip-untranslated-strings --config="$PWD/crowdin.yml"
       - name: Update force-locale list
-        run: ./gradlew :ime:app:generateForceLocaleArrayResourceFile
-      - name: Fix resource files special characters
         run: |
-          echo "fixing ellipsis character..."
-          find . -type f -name "strings.xml" -exec sed -i 's/\.\.\./…/g' {} \;
+          bazel run //js/localization_tools -- generateLocale \
+              --resourcesFolder="$PWD/ime/app/src/main/res" \
+              --targetFile="$PWD/ime/app/src/main/res/values/force_locale_array_generated.xml"
+      - name: Fix resource files special characters
+        run: bazel run //js/localization_tools -- replaceEllipsis --crowdinFile="$PWD/crowdin.yml"
+      - name: Fix formatting
+        run: |
+          bazel run //:format
+          git status
+          git add .
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7.0.5
+        uses: peter-evans/create-pull-request@v7.0.8
         with:
           token: ${{ secrets.BOT_MASTER_RW_GITHUB_TOKEN }}
           commit-message: 'Automated Localization Update from crowdin'

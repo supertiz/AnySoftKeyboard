@@ -18,11 +18,9 @@ def ts_library(name, srcs, deps, **kwargs):
     ts_project(
         name = name,
         srcs = srcs,
-        out_dir = "dist",
         transpiler = "tsc",
-        composite = True,
+        declaration = True,
         tsconfig = "//:tsconfig",
-        isolated_typecheck = True,
         deps = deps,
         **kwargs
     )
@@ -31,4 +29,5 @@ def ts_library(name, srcs, deps, **kwargs):
         name = "{}_eslint_test".format(name),
         srcs = [name],
         testonly = True,
+        size = "small",
     )
