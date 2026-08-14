@@ -52,6 +52,7 @@
     <bool name="settings_default_extension_keyboard_enabled">true</bool>
 
     <bool name="settings_default_gesture_typing">false</bool>
+    <bool name="settings_default_touch_trajectory_correction">true</bool>
 
     <string name="settings_default_swipe_velocity_threshold">380</string>
     <string name="settings_default_swipe_distance_threshold">140</string>
@@ -78,7 +79,7 @@
     <bool name="settings_default_bool_should_swap_punctuation_and_space">true</bool>
 
     <bool name="settings_default_one_shot_quick_text_popup">false</bool>
-    <bool name="settings_default_search_quick_text_tags">false</bool>
+    <bool name="settings_default_search_quick_text_tags">true</bool>
 
     <string name="settings_default_initial_quick_text_tab">last_used</string>
 
@@ -134,12 +135,12 @@
 
     <bool name="settings_default_workaround_disable_rtl_fix">true</bool>
 
-    <bool name="settings_default_try_splitting_words_for_correction">true</bool>
+    <bool name="settings_default_try_splitting_words_for_correction">false</bool>
 
     <dimen name="key_hysteresis_distance">10dp</dimen>
 
     <integer name="settings_default_zoom_percent_in_portrait">100</integer>
     <integer name="settings_default_zoom_percent_in_landscape">100</integer>
 
-    <integer name="settings_default_bottom_extra_padding_in_portrait">0</integer>
+    <integer name="settings_default_bottom_extra_padding_in_portrait">24</integer>
 </resources>

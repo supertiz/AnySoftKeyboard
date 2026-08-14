@@ -31,7 +31,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.util.Pair;
 import androidx.multidex.MultiDexApplication;
-import com.anysoftkeyboard.AnySoftKeyboard;
 import com.anysoftkeyboard.addons.AddOnsFactory;
 import com.anysoftkeyboard.android.NightMode;
 import com.anysoftkeyboard.base.utils.Logger;
@@ -171,7 +170,8 @@ public class AnyApplication extends MultiDexApplication {
     if (Build.VERSION.SDK_INT < 26) return new DeviceSpecificV24();
     if (Build.VERSION.SDK_INT < 28) return new DeviceSpecificV26();
     if (Build.VERSION.SDK_INT < 29) return new DeviceSpecificV28();
-    return new DeviceSpecificV29();
+    if (Build.VERSION.SDK_INT < 33) return new DeviceSpecificV29();
+    return new com.anysoftkeyboard.devicespecific.DeviceSpecificV33();
   }
 
   @Override
@@ -416,10 +416,9 @@ public class AnyApplication extends MultiDexApplication {
     Logger.setLogProvider(new NullLogProvider());
   }
 
-  public void onPackageChanged(final Intent eventIntent, final AnySoftKeyboard ask) {
-    AddOnsFactory.onExternalPackChanged(
+  public boolean onPackageChanged(final Intent eventIntent) {
+    return AddOnsFactory.onExternalPackChanged(
         eventIntent,
-        ask::onAddOnsCriticalChange,
         mTopRowFactory,
         mBottomRowFactory,
         mExtensionKeyboardFactory,

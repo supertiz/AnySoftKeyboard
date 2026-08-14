@@ -20,33 +20,9 @@ public class QuickTextKeyFactoryTest {
   public void testDefaultOrder() {
     List<QuickTextKey> orderAddOns =
         AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getEnabledAddOns();
-    Assert.assertEquals(17, orderAddOns.size());
+    Assert.assertEquals(18, orderAddOns.size());
     Assert.assertEquals("698b8c20-19df-11e1-bddb-0800200c9a66", orderAddOns.get(0).getId());
-    Assert.assertEquals("085020ea-f496-4c0c-80cb-45ca50635c59", orderAddOns.get(15).getId());
-  }
-
-  @Test
-  @Config(sdk = Build.VERSION_CODES.LOLLIPOP_MR1)
-  public void testCanParseAddOneTypesOfOutputsApi22() {
-    List<QuickTextKey> addOns =
-        AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getAllAddOns();
-
-    QuickTextKey emoticons = addOns.get(0);
-    Assert.assertEquals("698b8c20-19df-11e1-bddb-0800200c9a66", emoticons.getId());
-    Assert.assertEquals(KEY_OUTPUT, emoticons.getKeyOutputText().toString());
-    Assert.assertEquals(KEY_OUTPUT, emoticons.getKeyLabel().toString());
-  }
-
-  @Test
-  @Config(sdk = Build.VERSION_CODES.LOLLIPOP)
-  public void testCanParseAddOneTypesOfOutputsApi21() {
-    List<QuickTextKey> addOns =
-        AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getAllAddOns();
-
-    QuickTextKey emoticons = addOns.get(0);
-    Assert.assertEquals("698b8c20-19df-11e1-bddb-0800200c9a66", emoticons.getId());
-    Assert.assertEquals(KEY_OUTPUT, emoticons.getKeyOutputText().toString());
-    Assert.assertEquals(KEY_OUTPUT, emoticons.getKeyLabel().toString());
+    Assert.assertEquals("085020ea-f496-4c0c-80cb-45ca50635c59", orderAddOns.get(16).getId());
   }
 
   @Test
@@ -73,7 +49,7 @@ public class QuickTextKeyFactoryTest {
 
     List<QuickTextKey> orderAddOns =
         AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getEnabledAddOns();
-    Assert.assertEquals(17, orderAddOns.size());
+    Assert.assertEquals(18, orderAddOns.size());
     Assert.assertEquals(revisedQuickKeys.get(0).getId(), orderAddOns.get(0).getId());
     Assert.assertEquals(revisedQuickKeys.get(1).getId(), orderAddOns.get(1).getId());
 
@@ -85,7 +61,7 @@ public class QuickTextKeyFactoryTest {
     AnyApplication.getQuickTextKeyFactory(getApplicationContext()).setAddOnsOrder(revisedQuickKeys);
 
     orderAddOns = AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getAllAddOns();
-    Assert.assertEquals(17, orderAddOns.size());
+    Assert.assertEquals(18, orderAddOns.size());
     Assert.assertEquals(revisedQuickKeys.get(0).getId(), orderAddOns.get(0).getId());
     Assert.assertEquals(revisedQuickKeys.get(1).getId(), orderAddOns.get(1).getId());
     // this is a repeat in the re-order, so it is not repeating in the final list
@@ -99,7 +75,7 @@ public class QuickTextKeyFactoryTest {
         .setAddOnEnabled(orderAddOns.get(2).getId(), false);
 
     orderAddOns = AnyApplication.getQuickTextKeyFactory(getApplicationContext()).getEnabledAddOns();
-    Assert.assertEquals(15, orderAddOns.size());
+    Assert.assertEquals(16, orderAddOns.size());
     Assert.assertEquals(revisedQuickKeys.get(1).getId(), orderAddOns.get(0).getId());
     Assert.assertEquals(expected2ndId, orderAddOns.get(1).getId());
   }

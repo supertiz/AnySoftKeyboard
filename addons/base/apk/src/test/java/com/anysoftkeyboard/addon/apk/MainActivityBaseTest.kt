@@ -4,6 +4,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
+import android.view.inputmethod.InputMethodInfo
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -103,12 +105,22 @@ class MainActivityBaseTest {
         info.packageName = ASK_PACKAGE_NAME
         pm.installPackage(info)
       }
-      pm.addServiceIfNotPresent(
+      val imeComponent =
           ComponentName(
               ASK_PACKAGE_NAME,
               "${ASK_PACKAGE_NAME}.SoftKeyboard",
-          ),
-      )
+          )
+      pm.addServiceIfNotPresent(imeComponent)
+
+      // Register the IME with InputMethodManager
+      val imeInfo = InputMethodInfo(ASK_PACKAGE_NAME, imeComponent.className, "AnySoftKeyboard", "")
+      Shadows.shadowOf(
+              RuntimeEnvironment.getApplication()
+                  .getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                  as android.view.inputmethod.InputMethodManager,
+          )
+          .setInputMethodInfoList(listOf(imeInfo))
+
       ComponentName(ASK_PACKAGE_NAME, "${ASK_PACKAGE_NAME}.MainActivity").let { info ->
         pm.addActivityIfNotPresent(info)
         pm.addIntentFilterForActivity(
@@ -141,6 +153,73 @@ class MainActivityBaseTest {
             }
           }
         }
+      }
+    }
+  }
+
+  @Test
+  fun testIsAnySoftKeyboardInstalledReturnsFalseWhenNotInstalled() {
+    Shadows.shadowOf(RuntimeEnvironment.getApplication().packageManager)
+        .deletePackage(ASK_PACKAGE_NAME)
+
+    ActivityScenario.launch(TestMainActivity::class.java).use { scenario ->
+      scenario.moveToState(Lifecycle.State.RESUMED).onActivity { activity ->
+        Assert.assertFalse(activity.isAnySoftKeyboardInstalled())
+        activity.findViewById<TextView>(R.id.action_description).run {
+          Assert.assertEquals(
+              "AnySoftKeyboard is not installed on your device.\n" +
+                  "In order to use this expansion pack, " +
+                  "you must first install AnySoftKeyboard.",
+              text,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun testIsAnySoftKeyboardInstalledReturnsTrueWhenInstalledButNotEnabled() {
+    Shadows.shadowOf(RuntimeEnvironment.getApplication().packageManager).let { pm ->
+      PackageInfo().let { info ->
+        info.packageName = ASK_PACKAGE_NAME
+        pm.installPackage(info)
+      }
+    }
+
+    ActivityScenario.launch(TestMainActivity::class.java).use { scenario ->
+      scenario.moveToState(Lifecycle.State.RESUMED).onActivity { activity ->
+        Assert.assertTrue(activity.isAnySoftKeyboardInstalled())
+        activity.findViewById<TextView>(R.id.action_description).run {
+          Assert.assertEquals(
+              "AnySoftKeyboard is installed. You may need to set it up to start using this expansion pack.",
+              text,
+          )
+        }
+      }
+    }
+  }
+
+  @Test
+  fun testHideLauncherIconFlow() {
+    ActivityScenario.launch(TestMainActivity::class.java).use { scenario ->
+      scenario.moveToState(Lifecycle.State.RESUMED).onActivity { activity ->
+        val launcherComponent =
+            ComponentName(activity.packageName, "${activity.packageName}.LauncherAlias")
+        Assert.assertNotEquals(
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            activity.packageManager.getComponentEnabledSetting(launcherComponent),
+        )
+
+        activity.findViewById<Button>(R.id.hide_launcher_icon_button).let { button ->
+          Assert.assertEquals("Hide icon from launcher", button.text)
+          Shadows.shadowOf(button).onClickListener.onClick(button)
+        }
+
+        Assert.assertEquals(
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            activity.packageManager.getComponentEnabledSetting(launcherComponent),
+        )
+        Assert.assertTrue(activity.isFinishing)
       }
     }
   }

@@ -5,26 +5,17 @@
 # the code will use the same version of all of these tools and libraries listed.
 # For bzlmod dependencies, this implements the "single version policy".
 
-bazel_dep(name = "aspect_bazel_lib", version = "2.9.4")
-bazel_dep(name = "rules_nodejs", version = "6.3.5")
-bazel_dep(name = "aspect_rules_js", version = "2.1.2")
-bazel_dep(name = "aspect_rules_ts", version = "3.6.0")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "aspect_rules_esbuild", version = "0.21.0")
+bazel_dep(name = "bazel_lib", version = "3.5.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.4")
+bazel_dep(name = "aspect_rules_js", version = "3.0.3")
+bazel_dep(name = "aspect_rules_ts", version = "3.9.2")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "aspect_rules_esbuild", version = "0.26.0")
 bazel_dep(name = "rules_multitool", version = "1.3.0")
-bazel_dep(name = "rules_java", version = "8.6.3")
-bazel_dep(name = "contrib_rules_jvm", version = "0.28.0")
-bazel_dep(name = "rules_jvm_external", version = "6.7")
-
-# PATCHES
-single_version_override(
-    module_name = "rules_nodejs",
-    patch_strip = 1,
-    patches = [
-        "//tools/repo_patches:rules_nodejs_pr_3802.patch",
-    ],
-    version = "6.3.5",
-)
+bazel_dep(name = "rules_java", version = "9.3.0")
+bazel_dep(name = "rules_android", version = "0.7.3")
+bazel_dep(name = "contrib_rules_jvm", version = "0.32.0")
+bazel_dep(name = "rules_jvm_external", version = "6.10")
 
 multitool = use_extension("@rules_multitool//multitool:extension.bzl", "multitool")
 multitool.hub(lockfile = "//tools:multitool.lock.json")
@@ -46,18 +37,6 @@ node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(
     name = "nodejs",
     node_version_from_nvmrc = "//:.nvmrc",
-    # calculate SHA256 with curl https://nodejs.org/dist/v{version}/{filename} | shasum -a 256
-    # `curl https://nodejs.org/dist/v23.11.0/node-v23.11.0-darwin-arm64.tar.gz | shasum -a 256`
-    node_versions = {
-        "23.11.0-darwin_arm64": ("node-v23.11.0-darwin-arm64.tar.gz", "node-v23.11.0-darwin-arm64", "635990b46610238e3c008cd01480c296e0c2bfe7ec59ea9a8cd789d5ac621bb0"),
-        "23.11.0-darwin_amd64": ("node-v23.11.0-darwin-x64.tar.gz", "node-v23.11.0-darwin-x64", "a5782655748d4602c1ee1ee62732e0a16d29d3e4faac844db395b0fbb1c9dab8"),
-        "23.11.0-linux_arm64": ("node-v23.11.0-linux-arm64.tar.xz", "node-v23.11.0-linux-arm64", "85915f885fe7eab2be4a6e3de840cb83db4fc53749274d31383a0e1721a883c6"),
-        "23.11.0-linux_amd64": ("node-v23.11.0-linux-x64.tar.xz", "node-v23.11.0-linux-x64", "fa9ae28d8796a6cfb7057397e1eea30ca1c61002b42b8897f354563a254e7cf5"),
-        "18.20.8-darwin_arm64": ("node-v18.20.8-darwin-arm64.tar.gz", "node-v18.20.8-darwin-arm64", "bae4965d29d29bd32f96364eefbe3bca576a03e917ddbb70b9330d75f2cacd76"),
-        "18.20.8-darwin_amd64": ("node-v18.20.8-darwin-x64.tar.gz", "node-v18.20.8-darwin-x64", "ed2554677188f4afc0d050ecd8bd56effb2572d6518f8da6d40321ede6698509"),
-        "18.20.8-linux_arm64": ("node-v18.20.8-linux-arm64.tar.xz", "node-v18.20.8-linux-arm64", "224e569dbe7b0ea4628ce383d9d482494b57ee040566583f1c54072c86d1116b"),
-        "18.20.8-linux_amd64": ("node-v18.20.8-linux-x64.tar.xz", "node-v18.20.8-linux-x64", "5467ee62d6af1411d46b6a10e3fb5cacc92734dbcef465fea14e7b90993001c9"),
-    },
 )
 use_repo(
     node,
@@ -83,14 +62,25 @@ rules_ts_ext = use_extension(
     "ext",
 )
 rules_ts_ext.deps(
-    ts_integrity = "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==",
+    ts_integrity = "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
     # This keeps the TypeScript version in-sync with the editor, which is typically best.
     ts_version_from = "//:package.json",
 )
 use_repo(rules_ts_ext, "npm_typescript")
 
-bazel_dep(name = "aspect_rules_lint", version = "1.0.7")
-bazel_dep(name = "buildifier_prebuilt", version = "7.3.1")
+bazel_dep(name = "aspect_rules_lint", version = "1.13.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.2.1.2")
+# This is for formatting and linting
+# bazel_dep(name = "toolchains_llvm", version = "1.1.2")
+
+# llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
+# llvm.toolchain(
+#     llvm_versions = {
+#         "": "16.0.0",
+#         "darwin-x86_64": "15.0.7",
+#     },
+# )
+# use_repo(llvm, "llvm_toolchain", "llvm_toolchain_llvm")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
@@ -102,9 +92,34 @@ maven.install(
         "org.junit.platform:junit-platform-reporting:1.8.2",
     ],
     fetch_sources = True,
+    known_contributing_modules = ["protobuf"],
     lock_file = "//:maven_install.json",
 )
 use_repo(
     maven,
     "maven",
+)
+
+http_jar = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_jar")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_jar(
+    name = "google-java-format",
+    sha256 = "25157797a0a972c2290b5bc71530c4f7ad646458025e3484412a6e5a9b8c9aa6",
+    url = "https://github.com/google/google-java-format/releases/download/v1.25.2/google-java-format-1.25.2-all-deps.jar",
+)
+
+http_jar(
+    name = "ktfmt",
+    integrity = "sha256-dtBcYU/hhkeIVXFw/olBD3UTSGap+EAR+b1XDKElJrE=",
+    url = "https://repo1.maven.org/maven2/com/facebook/ktfmt/0.53/ktfmt-0.53-jar-with-dependencies.jar",
+)
+
+http_archive(
+    name = "crowdin_cli",
+    build_file_content = "exports_files(['crowdin-cli.jar'])",
+    sha256 = "5df38198c91b8b75eb8d105f0eb27ceb2d7e06e24872f849d6d50b403b060aa1",
+    strip_prefix = "4.14.2",
+    url = "https://github.com/crowdin/crowdin-cli/releases/download/4.14.2/crowdin-cli.zip",
 )

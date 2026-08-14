@@ -1,13 +1,12 @@
 # AnySoftKeyboard&nbsp;[![Latest release](https://img.shields.io/github/release/AnySoftKeyboard/AnySoftKeyboard.svg)](https://github.com/AnySoftKeyboard/AnySoftKeyboard/releases)
 
 Discussions can be found on&nbsp;[💬&nbsp;GitHub](https://github.com/AnySoftKeyboard/AnySoftKeyboard/discussions)<br/>
-Follow us on <a rel="me" href="https://hachyderm.io/@anysoftkeyboard">Mastodon</a><br/>
-Support chat-channels can be found on&nbsp;[![Gitter chat](https://badges.gitter.im/AnySoftKeyboard/gitter.png)](https://gitter.im/AnySoftKeyboard)<br/>
+Follow us on <a rel="me" href="https://hachyderm.io/@anysoftkeyboard">Mastodon</a>
 <br/>
-`main` latest build&nbsp;![](https://github.com/AnySoftKeyboard/AnySoftKeyboard/workflows/checks/badge.svg?event=push&branch=main)<br/>
+`main` latest build&nbsp;[![checks](https://github.com/AnySoftKeyboard/AnySoftKeyboard/actions/workflows/checks.yml/badge.svg)](https://github.com/AnySoftKeyboard/AnySoftKeyboard/actions/workflows/checks.yml)<br/>
 `main` coverage&nbsp;[![codecov](https://codecov.io/gh/AnySoftKeyboard/AnySoftKeyboard/branch/main/graph/badge.svg)](https://codecov.io/gh/AnySoftKeyboard/AnySoftKeyboard)<br/>
 <br/>
-Android (f/w 4.0.3+, API level 15+) on screen keyboard for multiple languages.
+Android (f/w 6.0+, API level 23+) on screen keyboard for multiple languages.
 
 <a href="https://play.google.com/store/apps/details?id=com.menny.android.anysoftkeyboard&utm_source=global_co&utm_medium=prtnr&utm_content=Mar2515&utm_campaign=PartBadge&pcampaignid=MKT-AC-global-none-all-co-pr-py-PartBadges-Oct1515-1"><img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/images/apps/en-play-badge.png" height="80pt"/></a>&nbsp;&nbsp;<a href="https://f-droid.org/repository/browse/?fdid=com.menny.android.anysoftkeyboard"><img alt="Get it on F-Droid" src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" height="80pt"/></a>
 
@@ -65,6 +64,13 @@ Sign up to beta-channel [here](https://play.google.com/apps/testing/com.menny.an
 - Each new commit to the release-branch will be published to 10% of the users.
 - Each day - if no new commit was pushed to the release-branch - we will increase the roll-out.
 
+### How to Start a New Release
+
+1. Cut a release branch from `main`: `release-branch-addons-vX.X-rX` (or `release-branch-ime-vX.X-rX`).
+2. In `addons/build.gradle` (or `ime/build.gradle`), bump `minor` and update `patchOffset` by appending `-<last_patch_number_of_previous_release>` to reset the patch counter.
+3. In `.github/workflows/deployment_promote.yml`, update `refname` in the matrix strategy to point to the new release branch.
+4. Submit a PR with these updates targeting the new `release-branch-...` base branch.
+
 ## Read more
 
 - Our fancy [web-site](https://anysoftkeyboard.github.io/)
@@ -72,7 +78,6 @@ Sign up to beta-channel [here](https://play.google.com/apps/testing/com.menny.an
 - [Theme](addons/themes/PACKS.md) add-ons in this repo.
 - [Quick-Text](addons/quicktexts/PACKS.md) add-ons in this repo.
 - [Crowdin](https://crowdin.com/project/anysoftkeyboard) to translate the app to your language. [![Crowdin](https://badges.crowdin.net/anysoftkeyboard/localized.svg)](https://crowdin.com/project/anysoftkeyboard)
-- Via [Bountysource](https://www.bountysource.com/teams/anysoftkeyboard/issues), users can post bounties and developers can claim them when fixing bugs. This is an external community project and not directly sponsored by the ASK developers!
 
 # Development/Contributing
 

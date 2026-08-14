@@ -13,6 +13,22 @@ public class VersionChangeLogs {
     log.add(
         new VersionChangeLog(
             1,
+            13,
+            "",
+            Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/95"),
+            "Improved gesture-typing memory management - fewer crashes, better performance.",
+            "Improved gesture-typing accuracy.",
+            "Support for 16 KB memory page sizes (Android 15 requirement).",
+            "Minimum Android version is 6.0 (Marshmallow, API level 23).",
+            "Updated emoji data for Android 15+.",
+            "Fixed emoji keyboard crash.",
+            "Better edge-to-edge display support for modern Android versions.",
+            "Various stability improvements and bug fixes.",
+            "YABTU.",
+            "Updated translations from the community (at crowdin.net)."));
+    log.add(
+        new VersionChangeLog(
+            1,
             12,
             "",
             Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/94"),

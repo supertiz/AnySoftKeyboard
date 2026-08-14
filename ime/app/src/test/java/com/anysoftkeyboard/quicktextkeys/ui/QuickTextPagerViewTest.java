@@ -165,25 +165,25 @@ public class QuickTextPagerViewTest {
     final QuickTextKeyFactory quickTextKeyFactory =
         AnyApplication.getQuickTextKeyFactory(getApplicationContext());
 
-    Assert.assertEquals(17, quickTextKeyFactory.getAllAddOns().size());
-    Assert.assertEquals(17, quickTextKeyFactory.getEnabledAddOns().size());
+    Assert.assertEquals(18, quickTextKeyFactory.getAllAddOns().size());
+    Assert.assertEquals(18, quickTextKeyFactory.getEnabledAddOns().size());
     quickTextKeyFactory.setAddOnEnabled(quickTextKeyFactory.getAllAddOns().get(0).getId(), false);
-    Assert.assertEquals(17, quickTextKeyFactory.getAllAddOns().size());
-    Assert.assertEquals(16, quickTextKeyFactory.getEnabledAddOns().size());
+    Assert.assertEquals(18, quickTextKeyFactory.getAllAddOns().size());
+    Assert.assertEquals(17, quickTextKeyFactory.getEnabledAddOns().size());
 
     OnKeyboardActionListener listener = Mockito.mock(OnKeyboardActionListener.class);
 
     mUnderTest.setOnKeyboardActionListener(listener);
     ViewPagerWithDisable pager = mUnderTest.findViewById(R.id.quick_text_keyboards_pager);
 
-    Assert.assertEquals(16 + 1 /*history*/, pager.getAdapter().getCount());
+    Assert.assertEquals(17 + 1 /* history */, pager.getAdapter().getCount());
 
     quickTextKeyFactory.setAddOnEnabled(quickTextKeyFactory.getAllAddOns().get(1).getId(), false);
 
     mUnderTest.setOnKeyboardActionListener(listener);
     pager = mUnderTest.findViewById(R.id.quick_text_keyboards_pager);
 
-    Assert.assertEquals(15 + 1 /*history*/, pager.getAdapter().getCount());
+    Assert.assertEquals(16 + 1 /* history */, pager.getAdapter().getCount());
   }
 
   @Test
@@ -217,5 +217,60 @@ public class QuickTextPagerViewTest {
     Assert.assertEquals(
         R.drawable.dark_background,
         Shadows.shadowOf(mUnderTest.getBackground()).getCreatedFromResId());
+  }
+
+  @Test
+  public void testSetThemeOverlay_forwardsOverlayToPagerAdapter() throws Exception {
+    mUnderTest.setOnKeyboardActionListener(Mockito.mock(OnKeyboardActionListener.class));
+    com.anysoftkeyboard.overlay.OverlayData overlayData =
+        new com.anysoftkeyboard.overlay.OverlayDataImpl(
+            Color.WHITE, Color.BLACK, Color.BLUE, Color.BLACK, Color.GRAY);
+    mUnderTest.setThemeOverlay(overlayData);
+    ViewPagerWithDisable pager = mUnderTest.findViewById(R.id.quick_text_keyboards_pager);
+    Assert.assertNotNull(pager.getAdapter());
+  }
+
+  @Test
+  public void
+      testSetThemeOverlay_normalizesAgainstPrimaryDarkColor_andAppliesToPagerSlidingTabStrip()
+          throws Exception {
+    mUnderTest.setOnKeyboardActionListener(Mockito.mock(OnKeyboardActionListener.class));
+    com.anysoftkeyboard.overlay.OverlayData overlayData =
+        new com.anysoftkeyboard.overlay.OverlayDataImpl(
+            Color.WHITE, Color.BLACK, Color.BLUE, Color.BLACK, Color.BLACK);
+    mUnderTest.setThemeOverlay(overlayData);
+
+    com.astuetz.PagerSlidingTabStrip pagerTabStrip = mUnderTest.findViewById(R.id.pager_tabs);
+    Assert.assertEquals(Color.WHITE, pagerTabStrip.getTextColor().getDefaultColor());
+    Assert.assertEquals(Color.WHITE, pagerTabStrip.getIndicatorColor());
+  }
+
+  @Test
+  public void testSetThemeOverlay_invalidOverlayData_doesNotApplyNormalizedColors()
+      throws Exception {
+    mUnderTest.setOnKeyboardActionListener(Mockito.mock(OnKeyboardActionListener.class));
+    com.astuetz.PagerSlidingTabStrip pagerTabStrip = mUnderTest.findViewById(R.id.pager_tabs);
+    int initialTextColor = pagerTabStrip.getTextColor().getDefaultColor();
+
+    com.anysoftkeyboard.overlay.OverlayData invalidOverlay =
+        new com.anysoftkeyboard.overlay.OverlayDataImpl();
+    mUnderTest.setThemeOverlay(invalidOverlay);
+    Assert.assertEquals(initialTextColor, pagerTabStrip.getTextColor().getDefaultColor());
+  }
+
+  @Test
+  public void
+      testSetThemeOverlay_lightPrimaryColor_darkPrimaryDarkColor_normalizesAgainstPrimaryDarkColor()
+          throws Exception {
+    mUnderTest.setOnKeyboardActionListener(Mockito.mock(OnKeyboardActionListener.class));
+    // primaryColor is WHITE (light), primaryDarkColor is BLACK (dark), secondaryTextColor is BLACK
+    com.anysoftkeyboard.overlay.OverlayData overlayData =
+        new com.anysoftkeyboard.overlay.OverlayDataImpl(
+            Color.WHITE, Color.BLACK, Color.BLUE, Color.BLACK, Color.BLACK);
+    mUnderTest.setThemeOverlay(overlayData);
+
+    com.astuetz.PagerSlidingTabStrip pagerTabStrip = mUnderTest.findViewById(R.id.pager_tabs);
+    // Normalized against primaryDarkColor (BLACK), text color must be WHITE (not BLACK)
+    Assert.assertEquals(Color.WHITE, pagerTabStrip.getTextColor().getDefaultColor());
   }
 }

@@ -3,6 +3,8 @@ import { deleteLocalizationFiles } from './deleter.js';
 import { generateLocaleArrayXml } from './locales_generator.js';
 import { exit } from 'process';
 import { replaceEllipsis } from './replace_ellipsis.js';
+import * as fs from 'fs';
+import { cleanEmptyTranslations } from './clean_empty_translations.js';
 
 const program = new Command();
 program.name('localization_tools').description('CLI for various localization tools').version('0.0.1');
@@ -35,6 +37,14 @@ program
     replaceEllipsis(workspaceDir, options.crowdinFile);
   });
 
+program
+  .command('cleanEmptyTranslations')
+  .requiredOption('--diff-file <diffFile>', 'Path to the diff file')
+  .action((options) => {
+    const workspaceDir = process.env.BUILD_WORKSPACE_DIRECTORY || process.cwd();
+    const diff = fs.readFileSync(options.diffFile, 'utf-8');
+    cleanEmptyTranslations(workspaceDir, diff);
+  });
 const main = async () => {
   program.parse();
 };

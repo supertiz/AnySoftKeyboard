@@ -1,5 +1,6 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "2.0.0"
+    // Version kept in sync with main project's libs.versions.toml
+    id "org.jetbrains.kotlin.jvm" version "2.4.10"
 }
 
 apply plugin: 'groovy'
@@ -12,18 +13,18 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.jsoup:jsoup:1.13.1'
+    implementation libs.jsoup
     implementation gradleApi()
     implementation localGroovy()
 
-    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
-    implementation 'com.google.code.gson:gson:2.10.1'
-    implementation "org.jetbrains.kotlin:kotlin-reflect:2.1.0"
+    implementation libs.httpclient
+    implementation libs.gson
+    implementation libs.kotlin.reflect
 
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'com.github.stefanbirkner:system-rules:1.16.1'
-    testImplementation 'org.mockito:mockito-core:2.23.0'
-    testImplementation 'com.nhaarman:mockito-kotlin:1.5.0'
+    testImplementation libs.junit
+    testImplementation libs.system.rules
+    testImplementation libs.mockito.core
+    testImplementation libs.mockito.kotlin
 }
 
 gradlePlugin {
@@ -31,10 +32,6 @@ gradlePlugin {
         makeDictionaryPlugin {
             id = 'make-dictionary'
             implementationClass = 'MakeDictionaryPlugin'
-        }
-        deploymentsPlugin {
-            id = 'anysoftkeyboard-deployment'
-            implementationClass = 'deployment.DeploymentPlugin'
         }
         manualVersionPlugin {
             id = 'ask.net.evendanan.autoversion'
@@ -48,24 +45,18 @@ gradlePlugin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 compileKotlin {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-
     kotlinOptions {
-        jvmTarget = 17
+        jvmTarget = 21
     }
 }
 
 compileTestKotlin {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-
     kotlinOptions {
-        jvmTarget = 17
+        jvmTarget = 21
     }
 }

@@ -4,7 +4,7 @@ name: localization
 on:
   # schedule is used to fetch new, async, translations
   schedule:
-    - cron: '24 02 * * *'
+    - cron: '24 02 * * 1,4'
   # push is used to upload new system strings
   push:
     branches:
@@ -14,6 +14,10 @@ on:
       - '.github/workflows/localization_update.yml'
       - 'js/localization_tools/**'
       - 'crowdin.yml'
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 env:
   TERM: dumb
   TMPDIR: "/tmp"
@@ -22,10 +26,11 @@ jobs:
   localization-update:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v6.0.3
         with:
           token: ${{ secrets.BOT_MASTER_RW_GITHUB_TOKEN }}
-      - uses: bazel-contrib/setup-bazel@0.14.0
+          fetch-depth: 0
+      - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
@@ -50,15 +55,28 @@ jobs:
           bazel run //:format
           git status
           git add .
+      - name: Generate diff report
+        run: |
+          ./scripts/ci/localization_update_summary.sh "/tmp/translation_report.md"
+          echo "Translations update from crowdin service." > /tmp/translation_report_commit_body.md
+          echo "" >> /tmp/translation_report_commit_body.md
+          cat /tmp/translation_report.md >> /tmp/translation_report_commit_body.md
+      - name: Upload translation artifacts
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: translation-verification-reports
+          path: |
+            /tmp/translation_report.md
+          retention-days: 30
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7.0.8
+        uses: peter-evans/create-pull-request@v8.1.1
         with:
           token: ${{ secrets.BOT_MASTER_RW_GITHUB_TOKEN }}
           commit-message: 'Automated Localization Update from crowdin'
           title: 'Automated Localization Update from crowdin'
           committer: 'Polyglot <ask@evendanan.net>'
           author: 'Polyglot <ask@evendanan.net>'
-          body: 'Generated from latest _main_ strings and crowdin data.'
+          body-path: /tmp/translation_report_commit_body.md
           team-reviewers: add-on-maintainers
           branch: 'bot-pr/localization-update'
           delete-branch: true

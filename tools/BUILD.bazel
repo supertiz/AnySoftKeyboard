@@ -2,6 +2,7 @@ load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
 load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
 load("@npm//:eslint/package_json.bzl", eslint_bin = "bin")
 load("@npm//:prettier/package_json.bzl", prettier = "bin")
+load("@rules_java//java:defs.bzl", "java_binary")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -20,7 +21,8 @@ prettier.prettier_binary(
         # Therefore to make it hermetic, prettier must be pointed at the copy of the config file
         # in the runfiles folder rather than the one in the source folder.
         "--config=\"$$JS_BINARY__RUNFILES\"/$(rlocationpath //:prettierrc)",
-        "--ignore-path=$(rlocationpath //:prettierignore)",
+        "--ignore-path=\"$$JS_BINARY__RUNFILES\"/$(rlocationpath //:prettierignore)",
+        "--ignore-unknown",
         "--log-level=warn",
     ],
 )
@@ -75,7 +77,10 @@ java_binary(
 # `run`ing this target will format the entire repo
 format_multirun(
     name = "format",
+    #c = "@llvm_toolchain_llvm//:bin/clang-format",
+    #cc = "@llvm_toolchain_llvm//:bin/clang-format",
     css = ":prettier",
+    #cuda = "@llvm_toolchain_llvm//:bin/clang-format",
     html = ":prettier",
     java = ":java-format",
     javascript = ":prettier",

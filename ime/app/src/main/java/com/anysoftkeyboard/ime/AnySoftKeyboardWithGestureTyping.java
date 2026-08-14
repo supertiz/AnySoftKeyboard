@@ -1,5 +1,8 @@
 package com.anysoftkeyboard.ime;
 
+import android.app.ActivityManager;
+import android.content.ComponentCallbacks2;
+import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,7 +33,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.disposables.Disposables;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,9 +42,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AnySoftKeyboardWithGestureTyping extends AnySoftKeyboardWithQuickText {
 
   public static final long MINIMUM_GESTURE_TIME_MS = 40;
+  private static final int MAX_CACHED_DETECTORS = 4;
 
   private boolean mGestureTypingEnabled;
-  protected final Map<String, GestureTypingDetector> mGestureTypingDetectors = new HashMap<>();
+  protected final Map<String, GestureTypingDetector> mGestureTypingDetectors =
+      new LinkedHashMap<String, GestureTypingDetector>(4, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, GestureTypingDetector> eldest) {
+          if (size() > MAX_CACHED_DETECTORS) {
+            Logger.d(TAG, "LRU evicting detector for key: %s", eldest.getKey());
+            eldest.getValue().destroy();
+            return true;
+          }
+          return false;
+        }
+      };
   @Nullable private GestureTypingDetector mCurrentGestureDetector;
   private boolean mDetectorReady = false;
   private boolean mJustPerformedGesture = false;
@@ -70,33 +85,44 @@ public abstract class AnySoftKeyboardWithGestureTyping extends AnySoftKeyboardWi
     super.onCreate();
 
     mClearLastGestureAction = new ClearGestureStripActionProvider(this);
-    addDisposable(
-        Observable.combineLatest(
-                PowerSaving.observePowerSavingState(
-                    getApplicationContext(), R.string.settings_key_power_save_mode_gesture_control),
-                prefs()
-                    .getBoolean(
-                        R.string.settings_key_gesture_typing,
-                        R.bool.settings_default_gesture_typing)
-                    .asObservable(),
-                (powerState, gestureTyping) -> {
-                  if (powerState) return false;
-                  return gestureTyping;
-                })
-            .subscribe(
-                enabled -> {
-                  mGestureTypingEnabled = enabled;
-                  mDetectorStateSubscription.dispose();
-                  if (!mGestureTypingEnabled) {
-                    destroyAllDetectors();
-                  } else {
-                    final AnyKeyboard currentAlphabetKeyboard = getCurrentAlphabetKeyboard();
-                    if (currentAlphabetKeyboard != null) {
-                      setupGestureDetector(currentAlphabetKeyboard);
+    if (isLowRamDevice()) {
+      mGestureTypingEnabled = false;
+      destroyAllDetectors();
+    } else {
+      addDisposable(
+          Observable.combineLatest(
+                  PowerSaving.observePowerSavingState(
+                      getApplicationContext(),
+                      R.string.settings_key_power_save_mode_gesture_control),
+                  prefs()
+                      .getBoolean(
+                          R.string.settings_key_gesture_typing,
+                          R.bool.settings_default_gesture_typing)
+                      .asObservable(),
+                  (powerState, gestureTyping) -> {
+                    if (powerState) return false;
+                    return gestureTyping;
+                  })
+              .subscribe(
+                  enabled -> {
+                    mGestureTypingEnabled = enabled;
+                    mDetectorStateSubscription.dispose();
+                    if (!mGestureTypingEnabled) {
+                      destroyAllDetectors();
+                    } else {
+                      final AnyKeyboard currentAlphabetKeyboard = getCurrentAlphabetKeyboard();
+                      if (currentAlphabetKeyboard != null) {
+                        setupGestureDetector(currentAlphabetKeyboard);
+                      }
                     }
-                  }
-                },
-                GenericOnError.onError("settings_key_gesture_typing")));
+                  },
+                  GenericOnError.onError("settings_key_gesture_typing")));
+    }
+  }
+
+  protected boolean isLowRamDevice() {
+    ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+    return am != null && am.isLowRamDevice();
   }
 
   @Override
@@ -152,6 +178,7 @@ public abstract class AnySoftKeyboardWithGestureTyping extends AnySoftKeyboardWi
                 getResources().getDimension(R.dimen.gesture_typing_frequency_factor),
                 15 /*max suggestions. For now it is static*/,
                 getResources().getDimensionPixelSize(R.dimen.gesture_typing_min_point_distance),
+                getResources().getDimensionPixelSize(R.dimen.gesture_typing_proximity_threshold),
                 keyboard.getKeys());
         mGestureTypingDetectors.put(key, mCurrentGestureDetector);
       }
@@ -195,6 +222,46 @@ public abstract class AnySoftKeyboardWithGestureTyping extends AnySoftKeyboardWi
       }
     } else {
       destroyAllDetectors();
+    }
+  }
+
+  @Override
+  public void onTrimMemory(int level) {
+    super.onTrimMemory(level);
+
+    Logger.d(TAG, "onTrimMemory() called with level %d", level);
+
+    // TRIM_MEMORY_RUNNING_MODERATE = 5 (Device running moderately low on memory)
+    // TRIM_MEMORY_RUNNING_LOW = 10 (Device running significantly low on memory)
+    // Clear non-active detectors to free memory before we hit critical levels
+    if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE) {
+      final GestureTypingDetector currentGestureDetector = mCurrentGestureDetector;
+      if (currentGestureDetector != null) {
+        // Keep current detector, destroy all others
+        Logger.d(TAG, "Clearing non-active detectors, keeping current");
+        List<Map.Entry<String, GestureTypingDetector>> allDetectors =
+            new ArrayList<>(mGestureTypingDetectors.entrySet());
+        int clearedCount = 0;
+        for (Map.Entry<String, GestureTypingDetector> pair : allDetectors) {
+          if (pair.getValue() != currentGestureDetector) {
+            pair.getValue().destroy();
+            mGestureTypingDetectors.remove(pair.getKey());
+            clearedCount++;
+          }
+        }
+        Logger.d(TAG, "Cleared %d non-active detectors", clearedCount);
+      } else {
+        Logger.d(TAG, "No current detector, clearing all");
+        destroyAllDetectors();
+      }
+    }
+
+    // At higher memory pressure, also trim the current detector
+    if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+      if (mCurrentGestureDetector != null) {
+        Logger.d(TAG, "Trimming current detector memory");
+        mCurrentGestureDetector.trimMemory();
+      }
     }
   }
 

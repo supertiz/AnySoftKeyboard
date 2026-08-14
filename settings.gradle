@@ -1,5 +1,4 @@
 rootProject.name = 'AnySoftKeyboard'
-include ':deployment'
 
 include ':api'
 
@@ -93,6 +92,7 @@ include ':ime:voiceime'
 include ':ime:releaseinfo'
 include ':ime:chewbacca'
 include ':ime:permissions'
+
 include ':ime:app'
 
 include ':vosk_models'

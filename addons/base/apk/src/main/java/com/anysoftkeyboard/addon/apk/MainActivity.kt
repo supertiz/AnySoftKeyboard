@@ -1,10 +1,12 @@
 package com.anysoftkeyboard.addon.apk
 
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
@@ -45,7 +47,7 @@ abstract class MainActivityBase(
             it.context.startActivity(intent)
           }
         } catch (ex: Exception) {
-          Log.e("ASK_ADD_ON", "Could not launch Store search!", ex)
+          Log.e("ASK_ADD_ON", "Could not launch AnySoftKeyboard!", ex)
         }
       }
     } else {
@@ -67,20 +69,33 @@ abstract class MainActivityBase(
         }
       }
     }
-  }
 
-  private fun isAnySoftKeyboardInstalled(): Boolean {
-    // TODO: we need to query for a broadcast-receiver, or something
-    return try {
-      val services =
-          packageManager.getPackageInfo(
-              ASK_PACKAGE_NAME,
-              PackageManager.GET_SERVICES,
-          )
-      services.services?.any { it.name == "com.menny.android.anysoftkeyboard.SoftKeyboard" }
-          ?: false
-    } catch (e: Exception) {
-      false
+    binding.hideLauncherIconButton.setOnClickListener {
+      try {
+        val launcherComponent = ComponentName(packageName, "$packageName.LauncherAlias")
+        packageManager.setComponentEnabledSetting(
+            launcherComponent,
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+        Toast.makeText(
+                this,
+                R.string.launcher_icon_hidden_toast,
+                Toast.LENGTH_SHORT,
+            )
+            .show()
+        finish()
+      } catch (ex: Exception) {
+        Log.e("ASK_ADD_ON", "Could not hide launcher icon!", ex)
+      }
     }
   }
+
+  internal fun isAnySoftKeyboardInstalled(): Boolean =
+      try {
+        packageManager.getPackageInfo(ASK_PACKAGE_NAME, 0)
+        true
+      } catch (e: Exception) {
+        false
+      }
 }

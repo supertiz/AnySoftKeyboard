@@ -19,9 +19,11 @@ package com.anysoftkeyboard.ime;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.XmlResourceParser;
+import android.text.TextUtils;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.dictionaries.WordComposer;
 import com.anysoftkeyboard.keyboards.AnyKeyboard;
@@ -54,6 +56,8 @@ public abstract class AnySoftKeyboardKeyboardTagsSearcher extends AnySoftKeyboar
   private SharedPreferences mSharedPrefsNotToUse;
   private final SharedPreferences.OnSharedPreferenceChangeListener mUpdatedPrefKeysListener =
       (sharedPreferences, key) -> {
+        // null/empty key is received when SharedPreferences is cleared
+        if (TextUtils.isEmpty(key)) return;
         if (key.startsWith(QuickTextKeyFactory.PREF_ID_PREFIX) && mTagsExtractor.isEnabled()) {
           // forcing reload
           setupTagsSearcher();
@@ -85,7 +89,8 @@ public abstract class AnySoftKeyboardKeyboardTagsSearcher extends AnySoftKeyboar
     mSharedPrefsNotToUse.unregisterOnSharedPreferenceChangeListener(mUpdatedPrefKeysListener);
   }
 
-  private void updateTagExtractor(boolean enabled) {
+  @VisibleForTesting
+  protected void updateTagExtractor(boolean enabled) {
     if (enabled && !mTagsExtractor.isEnabled()) {
       setupTagsSearcher();
     } else {
@@ -288,7 +293,7 @@ public abstract class AnySoftKeyboardKeyboardTagsSearcher extends AnySoftKeyboar
       };
     }
 
-    /*NOT IMPLEMENTED BELOW!! */
+    /* NOT IMPLEMENTED BELOW!! */
 
     @Override
     public void add(int location, CharSequence object) {

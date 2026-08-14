@@ -28,50 +28,87 @@ public class IMEUtil {
 
   private static final String TAG = "ASKIMEUtils";
 
-  /* Damerau-Levenshtein distance */
   public static int editDistance(
       @NonNull CharSequence lowerCaseWord,
       @NonNull final char[] word,
       final int offset,
       final int length) {
+    return editDistance(lowerCaseWord, word, offset, length, null);
+  }
+
+  /* Damerau-Levenshtein distance */
+  public static int editDistance(
+      @NonNull CharSequence lowerCaseWord,
+      @NonNull final char[] word,
+      final int offset,
+      final int length,
+      int[] workspace) {
     final int sl = lowerCaseWord.length();
     final int tl = length;
-    int[][] dp = new int[sl + 1][tl + 1];
-    for (int i = 0; i <= sl; i++) {
-      dp[i][0] = i;
+
+    // We only need 3 rows for Damerau-Levenshtein (Optimal String Alignment):
+    // current row (i), previous row (i-1), and pre-previous row (i-2).
+    // This reduces space from O(N*M) to O(M).
+    // We use a single flattened array to avoid allocation if workspace is provided.
+    // We need (tl + 1) * 3 ints.
+
+    final int width = tl + 1;
+    if (workspace == null || workspace.length < width * 3) {
+      workspace = new int[width * 3];
     }
+
+    // Offsets for rows in the flattened array
+    int prevPrev = 0;
+    int prev = width;
+    int curr = width * 2;
+
+    // Initialize the first row (conceptually i=0, for empty source string)
     for (int j = 0; j <= tl; j++) {
-      dp[0][j] = j;
+      workspace[prev + j] = j;
     }
+
     for (int i = 0; i < sl; ++i) {
+      workspace[curr + 0] = i + 1;
+      final char sc = lowerCaseWord.charAt(i);
       for (int j = 0; j < tl; ++j) {
-        final char sc = lowerCaseWord.charAt(i);
         final char tc = Character.toLowerCase(word[offset + j]);
         final int cost = sc == tc ? 0 : 1;
-        dp[i + 1][j + 1] = Math.min(dp[i][j + 1] + 1, Math.min(dp[i + 1][j] + 1, dp[i][j] + cost));
+
+        int min = workspace[prev + j + 1] + 1; // deletion: dp[i][j+1] + 1
+        min = Math.min(min, workspace[curr + j] + 1); // insertion: dp[i+1][j] + 1
+        min = Math.min(min, workspace[prev + j] + cost); // substitution: dp[i][j] + cost
+        workspace[curr + j + 1] = min;
+
         // Overwrite for transposition cases
         if (i > 0
             && j > 0
             && sc == Character.toLowerCase(word[offset + j - 1])
             && tc == lowerCaseWord.charAt(i - 1)) {
-          dp[i + 1][j + 1] = Math.min(dp[i + 1][j + 1], dp[i - 1][j - 1] + cost);
+          // dp[i + 1][j + 1] = Math.min(dp[i + 1][j + 1], dp[i - 1][j - 1] + cost);
+          // dp[i-1][j-1] is in prevPrev[j-1]
+          int prevPrevVal = workspace[prevPrev + j - 1];
+          workspace[curr + j + 1] = Math.min(workspace[curr + j + 1], prevPrevVal + cost);
         }
       }
+
+      // Rotate rows: prevPrev becomes prev, prev becomes curr, curr becomes recycled prevPrev
+      int temp = prevPrev;
+      prevPrev = prev;
+      prev = curr;
+      curr = temp;
     }
+
+    // After the loop, the result is in prev[tl] because we rotated.
+    int result = workspace[prev + tl];
     if (BuildConfig.DEBUG) {
-      StringBuilder sb = new StringBuilder();
-      sb.append("editDistance: ").append(lowerCaseWord).append(", ").append(word, offset, length);
-      Logger.d(TAG, sb.toString());
-      for (int i = 0; i < dp.length; ++i) {
-        sb.setLength(0);
-        sb.append(i).append(':');
-        for (int j = 0; j < dp[i].length; ++j) {
-          sb.append(dp[i][j]).append(',');
-        }
-        Logger.d(TAG, sb.toString());
-      }
+      Logger.d(
+          TAG,
+          "editDistance: %s, %s -> %d",
+          lowerCaseWord,
+          new String(word, offset, length),
+          result);
     }
-    return dp[sl][tl];
+    return result;
   }
 
   /**
@@ -135,5 +172,52 @@ public class IMEUtil {
       // Note: this is different from editorInfo.actionId, hence "ImeOptionsActionId"
       return editorInfo.imeOptions & EditorInfo.IME_MASK_ACTION;
     }
+  }
+
+  /**
+   * Determines whether the TYPE_TEXT_FLAG_NO_SUGGESTIONS flag should be honored based on other
+   * flags present.
+   *
+   * <p>Some apps (like Google Keep) incorrectly set contradictory flags:
+   * TYPE_TEXT_FLAG_NO_SUGGESTIONS along with TYPE_TEXT_FLAG_AUTO_CORRECT or
+   * TYPE_TEXT_FLAG_AUTO_COMPLETE. Since auto-correction and auto-completion require suggestions to
+   * function, we ignore NO_SUGGESTIONS when these flags are present.
+   *
+   * @param textFlags The input type flags from EditorInfo (use EditorInfo.TYPE_MASK_FLAGS to
+   *     extract)
+   * @return true if NO_SUGGESTIONS should be honored (disable suggestions), false if it should be
+   *     ignored
+   */
+  public static boolean shouldHonorNoSuggestionsFlag(int textFlags) {
+    final boolean hasNoSuggestions =
+        (textFlags & EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+            == EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+
+    if (!hasNoSuggestions) {
+      // NO_SUGGESTIONS is not set, nothing to honor
+      return false;
+    }
+
+    // Check for contradictory flags
+    final boolean hasAutoCorrect =
+        (textFlags & EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT)
+            == EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT;
+    final boolean hasAutoComplete =
+        (textFlags & EditorInfo.TYPE_TEXT_FLAG_AUTO_COMPLETE)
+            == EditorInfo.TYPE_TEXT_FLAG_AUTO_COMPLETE;
+
+    if (hasAutoCorrect || hasAutoComplete) {
+      // NO_SUGGESTIONS contradicts AUTO_CORRECT or AUTO_COMPLETE, ignore it
+      Logger.d(
+          TAG,
+          "Ignoring TYPE_TEXT_FLAG_NO_SUGGESTIONS due to contradictory flags: "
+              + "hasAutoCorrect=%s, hasAutoComplete=%s",
+          hasAutoCorrect,
+          hasAutoComplete);
+      return false;
+    }
+
+    // NO_SUGGESTIONS is set and not contradicted, honor it
+    return true;
   }
 }

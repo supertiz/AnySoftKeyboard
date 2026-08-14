@@ -161,16 +161,48 @@ public class ChewbaccaUncaughtExceptionHandlerTest {
         new File(app.getFilesDir(), ChewbaccaUncaughtExceptionHandler.NEW_CRASH_FILENAME);
     Assert.assertTrue(newReport.isFile());
     List<String> text = Files.readAllLines(newReport.toPath());
-    Assert.assertEquals(
-        44 /*this is fragile, and can change when crash report is changed*/, text.size());
+    // Verify the crash report has meaningful content (not just empty or minimal)
+    Assert.assertTrue(
+        "Crash report should have substantial content (at least 20 lines), but was " + text.size(),
+        text.size() >= 20);
+    // Verify the header is present
     Assert.assertEquals(
         "Hi. It seems that we have crashed.... Here are some details:", text.get(0));
+    // Verify the header break line is present
     Assert.assertEquals(
         ChewbaccaUncaughtExceptionHandler.HEADER_BREAK_LINE,
         text.stream()
             .filter(ChewbaccaUncaughtExceptionHandler.HEADER_BREAK_LINE::equals)
             .findFirst()
             .orElse(null));
+    // Verify the exception is mentioned in the report
+    Assert.assertTrue(
+        "Report should contain exception information",
+        text.stream().anyMatch(line -> line.contains("IOException") || line.contains("an error")));
+  }
+
+  @Test
+  public void testUnwrapsUndeliverableException() throws Exception {
+    Application app = ApplicationProvider.getApplicationContext();
+    NotificationDriver notificationDriver = Mockito.mock(NotificationDriver.class);
+    TestableChewbaccaUncaughtExceptionHandler underTest =
+        new TestableChewbaccaUncaughtExceptionHandler(app, null, notificationDriver);
+
+    Throwable cause = new OutOfMemoryError("Failed allocation in test");
+    Throwable undeliverable = new io.reactivex.exceptions.UndeliverableException(cause);
+
+    underTest.uncaughtException(Thread.currentThread(), undeliverable);
+
+    File newReport =
+        new File(app.getFilesDir(), ChewbaccaUncaughtExceptionHandler.NEW_CRASH_FILENAME);
+    Assert.assertTrue(newReport.isFile());
+    List<String> text = Files.readAllLines(newReport.toPath());
+    Assert.assertTrue(
+        "Report should contain root cause OutOfMemoryError information",
+        text.stream().anyMatch(line -> line.contains("OutOfMemoryError")));
+    Assert.assertTrue(
+        "Report should contain exception message",
+        text.stream().anyMatch(line -> line.contains("Failed allocation in test")));
   }
 
   private static class TestableChewbaccaUncaughtExceptionHandler

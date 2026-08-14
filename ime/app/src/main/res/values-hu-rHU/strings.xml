@@ -547,7 +547,8 @@
     <string name="initial_quick_text_tab_always_first_tab">mindig az elsővel</string>
     <string name="initial_quick_text_tab_last_used_tab">az utoljára használttal</string>
     <string name="initial_quick_text_tab_history_tab">az előzményekkel kezdjen</string>
-    <string name="emoji_default_skin_tone_title">Hangulatjelek bőrszíne</string>
+    <string name="emoji_default_skin_tone_title">Hangulatjelek bőrszíne
+</string>
     <string name="emoji_default_skin_tone_summary">Fitzpatrick-skála szerinti beállított bőrszín: %s</string>
     <string name="emoji_default_skin_tone_value_generic">általános</string>
     <string name="emoji_default_skin_tone_value_type_2">nagyon világos</string>
@@ -608,7 +609,8 @@
     <string name="setup_wizard_step_three_title">Mi a következő?</string>
     <string name="setup_wizard_step_three_details">Köszönjük, hogy az <i>AnySoftKeyboard</i>-ot választotta.
     </string>
-    <string name="setup_wizard_step_three_details_done">        <b>Készen van 🎉\nAkár ki is próbálhatja az új kedvencét.</b>
+    <string name="setup_wizard_step_three_details_done">
+        <b>Készen van 🎉\nAkár ki is próbálhatja az új kedvencét.</b>
     </string>
     <string name="setup_wizard_step_three_details_actions">Vagy testreszabhatja 
         a billentyűzetet igényei szerint:
@@ -735,6 +737,8 @@
     <string name="delete_all_clipboard_entries">Vágólap törlése</string>
     <string name="tip_swipe_from_backspace_to_clear">Tipp: a szóközről balra húzva törölheted a szót!</string>
     <string name="notification_read_contacts_ticker">Névjegyek elérése engedély szükséges</string>
+    <string name="notification_action_approve_permission">Engedély jóváhagyása</string>
+    <string name="notification_action_dismiss_permission">A névjegyszótár letiltása</string>
     <string name="wizard_allow_notification_permission">Értesítések fogadása az AnySoftKeyboard-tól</string>
     <string name="setup_wizard_step_notification_permissions_details">Ritka esetekben (például alkalmazásösszeomlás esetén) eszközértesítést kell megjelenítenünk. Ez ajánlott, de az értesítések letiltása nem befolyásolja az alkalmazás működését.</string>
     <string name="wizard_skip_notification_permission">Ne küldjön éresítéseket</string>

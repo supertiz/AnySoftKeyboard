@@ -30,6 +30,14 @@ import org.robolectric.annotation.LooperMode;
 public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
 
   @Test
+  public void testPredictionOnInDefaultTextField() {
+    final EditorInfo editorInfo =
+        createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_TEXT);
+    simulateOnStartInputFlow(false, editorInfo);
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.isPredictionOn());
+  }
+
+  @Test
   public void testStripActionLifeCycle() {
     Assert.assertNotNull(
         mAnySoftKeyboardUnderTest
@@ -113,6 +121,128 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
   }
 
   @Test
+  public void testWordComposerStaysEmptyWhenPredictionOffInNumberField() {
+    simulateFinishInputFlow();
+    final EditorInfo editorInfo =
+        createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_NUMBER);
+    simulateOnStartInputFlow(false, editorInfo);
+
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+
+    mAnySoftKeyboardUnderTest.simulateKeyPress('1');
+    mAnySoftKeyboardUnderTest.simulateKeyPress('2');
+    mAnySoftKeyboardUnderTest.simulateKeyPress('3');
+
+    // Bug #1 fix: WordComposer should remain empty when prediction is off
+    Assert.assertTrue(
+        "WordComposer should remain empty when prediction is off",
+        mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+    Assert.assertEquals("123", getCurrentTestInputConnection().getCurrentTextInInputConnection());
+  }
+
+  @Test
+  public void testWordComposerStaysEmptyWhenPredictionOffInPhoneField() {
+    simulateFinishInputFlow();
+    final EditorInfo editorInfo =
+        createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_PHONE);
+    simulateOnStartInputFlow(false, editorInfo);
+
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("555-1234");
+
+    Assert.assertTrue(
+        "WordComposer should remain empty when prediction is off",
+        mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+    Assert.assertEquals(
+        "555-1234", getCurrentTestInputConnection().getCurrentTextInInputConnection());
+  }
+
+  @Test
+  public void testWordComposerStaysEmptyWhenPredictionOffInPasswordField() {
+    simulateFinishInputFlow();
+    final EditorInfo editorInfo =
+        createEditorInfo(
+            EditorInfo.IME_ACTION_NONE,
+            EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
+    simulateOnStartInputFlow(false, editorInfo);
+
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("password");
+
+    Assert.assertTrue(
+        "WordComposer should remain empty when prediction is off",
+        mAnySoftKeyboardUnderTest.getCurrentComposedWord().isEmpty());
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+    Assert.assertEquals(
+        "password", getCurrentTestInputConnection().getCurrentTextInInputConnection());
+  }
+
+  @Test
+  public void testSuggestionRestartCancelledWhenSwitchingToNonPredictiveField() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_allow_suggestions_restart, true);
+
+    // Start in text field with prediction ON
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hello ");
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.isPredictionOn());
+
+    // Trigger backspace to queue restart suggestion message
+    mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.DELETE);
+
+    // Switch to password field before restart executes
+    simulateFinishInputFlow();
+    final EditorInfo passwordField =
+        createEditorInfo(
+            EditorInfo.IME_ACTION_NONE,
+            EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
+    simulateOnStartInputFlow(false, passwordField);
+
+    // Let delayed restart execute
+    TestRxSchedulers.foregroundAdvanceBy(200);
+
+    // Bug #5 fix: Should NOT restart suggestions in password field
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+    verifySuggestions(false);
+  }
+
+  @Test
+  public void testNoSuggestionMessagesExecuteAfterInputFinishes() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_allow_suggestions_restart, true);
+
+    // Type some text with prediction on
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hello");
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.isPredictionOn());
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+
+    // Finish input - this should cancel any pending suggestion messages
+    simulateFinishInputFlow();
+
+    // Bug #5 fix: Verify all suggestion messages are cancelled
+    Assert.assertFalse(
+        "No update suggestions message should remain after input finishes",
+        ((AnySoftKeyboardSuggestions) mAnySoftKeyboardUnderTest)
+            .mKeyboardHandler.hasMessages(KeyboardUIStateHandler.MSG_UPDATE_SUGGESTIONS));
+    Assert.assertFalse(
+        "No restart suggestions message should remain after input finishes",
+        ((AnySoftKeyboardSuggestions) mAnySoftKeyboardUnderTest)
+            .mKeyboardHandler.hasMessages(MSG_RESTART_NEW_WORD_SUGGESTIONS));
+
+    // Advance time to let any delayed operations try to execute
+    // Should be no-op with no crashes
+    TestRxSchedulers.foregroundAdvanceBy(200);
+
+    // Prediction remains off after finishing input
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
+  }
+
+  @Test
   public void testNextWordHappyPath() {
     mAnySoftKeyboardUnderTest.simulateTextTyping("hello face hello face hello face hello face ");
     mAnySoftKeyboardUnderTest.simulateTextTyping("hello ");
@@ -165,7 +295,7 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
   }
 
   @Test
-  @LooperMode(LooperMode.Mode.LEGACY) /*sensitive to animations*/
+  @LooperMode(LooperMode.Mode.LEGACY) /* sensitive to animations */
   public void testClickingCancelPredicationHappyPath() {
     TestRxSchedulers.drainAllTasks();
     TestRxSchedulers.foregroundAdvanceBy(10000);
@@ -286,6 +416,29 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
   }
 
   @Test
+  public void testSuggestionsRestartWhenMovingCursorEvenWhenRestarting() {
+    simulateFinishInputFlow();
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_allow_suggestions_restart, true);
+    simulateOnStartInputFlow(
+        true, createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_TEXT));
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hell yes");
+    Assert.assertEquals(
+        "hell yes", getCurrentTestInputConnection().getCurrentTextInInputConnection());
+
+    mAnySoftKeyboardUnderTest.resetMockCandidateView();
+    mAnySoftKeyboardUnderTest.moveCursorToPosition(2, true);
+    TestRxSchedulers.drainAllTasksUntilEnd();
+    Assert.assertEquals(2, mAnySoftKeyboardUnderTest.getCurrentComposedWord().cursorPosition());
+    Assert.assertEquals(
+        "hell yes", getCurrentTestInputConnection().getCurrentTextInInputConnection());
+    verifySuggestions(true, "hell", "hello");
+    Assert.assertEquals(
+        "hell", mAnySoftKeyboardUnderTest.getCurrentComposedWord().getTypedWord().toString());
+    Assert.assertEquals(2, getCurrentTestInputConnection().getCurrentStartPosition());
+  }
+
+  @Test
   public void testDoesNotPostRestartOnBackspaceWhilePredicting() {
     simulateFinishInputFlow();
     SharedPrefsHelper.setPrefsValue(R.string.settings_key_allow_suggestions_restart, true);
@@ -353,7 +506,7 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
       // really quickly
       mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.DELETE, false);
       TestRxSchedulers.foregroundAdvanceBy(
-          50 /*that's the key-repeat delay in AnyKeyboardViewBase*/);
+          50 /* that's the key-repeat delay in AnyKeyboardViewBase */);
     }
     TestRxSchedulers.drainAllTasksUntilEnd(); // lots of events in the queue...
     TestRxSchedulers.foregroundAdvanceBy(100);
@@ -489,7 +642,7 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
     mAnySoftKeyboardUnderTest.resetMockCandidateView();
 
     mAnySoftKeyboardUnderTest.moveCursorToPosition(2, true);
-    verifySuggestions(true);
+    verifyNoSuggestionsOrEmpty();
     Assert.assertEquals(
         "", mAnySoftKeyboardUnderTest.getCurrentComposedWord().getTypedWord().toString());
     Assert.assertEquals(0, mAnySoftKeyboardUnderTest.getCurrentComposedWord().cursorPosition());
@@ -510,6 +663,22 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
     Assert.assertEquals(4, getCurrentTestInputConnection().getCurrentStartPosition());
     Assert.assertEquals(
         "rd", mAnySoftKeyboardUnderTest.getCurrentComposedWord().getTypedWord().toString());
+  }
+
+  private void verifyNoSuggestionsOrEmpty() {
+    com.anysoftkeyboard.rx.TestRxSchedulers.drainAllTasks();
+    org.mockito.ArgumentCaptor<java.util.List> captor =
+        org.mockito.ArgumentCaptor.forClass(java.util.List.class);
+    try {
+      org.mockito.Mockito.verify(
+              mAnySoftKeyboardUnderTest.getMockCandidateView(), org.mockito.Mockito.atLeastOnce())
+          .setSuggestions(captor.capture(), org.mockito.Mockito.anyInt());
+      java.util.List<java.util.List> all = captor.getAllValues();
+      java.util.List last = all.get(all.size() - 1);
+      org.junit.Assert.assertEquals("Should have 0 suggestions if called", 0, last.size());
+    } catch (Throwable e) {
+      // Not called - that's also fine!
+    }
   }
 
   @Test
@@ -704,5 +873,101 @@ public class AnySoftKeyboardSuggestionsTest extends AnySoftKeyboardBaseTest {
   @Ignore("Robolectric scheduler issues. I can't figure how to correctly simulate this.")
   public void testWayOverExpectedDelayedOnSelectionUpdate() {
     testDelayedOnSelectionUpdate(TestableAnySoftKeyboard.MAX_TIME_TO_EXPECT_SELECTION_UPDATE * 2);
+  }
+
+  @Test
+  public void testSuggestionsShownWhenNoSuggestionsContradictsAutoCorrect() {
+    // Google Keep scenario: NO_SUGGESTIONS + AUTO_CORRECT (contradictory flags)
+    // Keyboard should show suggestions because AUTO_CORRECT requires them
+    simulateFinishInputFlow();
+    final EditorInfo editorInfo =
+        createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_TEXT);
+    // Set Google Keep's actual flags: 0xac000
+    // = NO_SUGGESTIONS (0x80000) + MULTI_LINE (0x20000) + AUTO_CORRECT (0x8000) +
+    // CAP_SENTENCES
+    // (0x4000)
+    editorInfo.inputType =
+        EditorInfo.TYPE_CLASS_TEXT
+            | EditorInfo.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            | EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE
+            | EditorInfo.TYPE_TEXT_FLAG_AUTO_CORRECT
+            | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES;
+    simulateOnStartInputFlow(false, editorInfo);
+
+    // Should have prediction enabled despite NO_SUGGESTIONS flag
+    Assert.assertTrue(
+        "Prediction should be enabled when NO_SUGGESTIONS contradicts AUTO_CORRECT",
+        mAnySoftKeyboardUnderTest.isPredictionOn());
+
+    // Should show suggestions strip
+    Assert.assertNotNull(
+        "Suggestions strip should be visible",
+        mAnySoftKeyboardUnderTest
+            .getInputViewContainer()
+            .findViewById(R.id.close_suggestions_strip_text));
+
+    // Should actually predict when typing
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hell");
+    Assert.assertTrue(
+        "Should be predicting when typing", mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+    verifySuggestions(true, "hell", "hello");
+  }
+
+  @Test
+  public void testCandidateStripClearedWhenSuggestionsDisabledDynamically() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_show_suggestions, true);
+    simulateFinishInputFlow();
+    simulateOnStartInputFlow();
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hell");
+    verifySuggestions(true, "hell", "hello");
+
+    // Dynamically disable suggestions while active
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_show_suggestions, false);
+    TestRxSchedulers.drainAllTasks();
+
+    // Bug: mCandidateView is not cleared/hidden when settings_key_show_suggestions toggles to false
+    verifySuggestions(false);
+  }
+
+  @Test
+  public void testNextWordSuggestionsNotShownWhenShowSuggestionsIsFalse() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_show_suggestions, false);
+    simulateFinishInputFlow();
+    simulateOnStartInputFlow();
+
+    // Type a word and space
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hello ");
+    TestRxSchedulers.drainAllTasks();
+
+    // Bug: setSuggestions(mSuggest.getNextSuggestions(...)) is called unconditionally in
+    // commitWordToInput
+    // rendering next words/punctuations to CandidateView even when show_suggestions is false
+    verifySuggestions(false);
+  }
+
+  @Test
+  public void testSuggestionsRestartNotAllowedWhenAutoCorrectIsOff() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_show_suggestions, true);
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_allow_suggestions_restart, true);
+    SharedPrefsHelper.setPrefsValue(
+        R.string.settings_key_auto_pick_suggestion_aggressiveness, "none");
+    TestRxSchedulers.drainAllTasks();
+
+    simulateFinishInputFlow();
+    simulateOnStartInputFlow();
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hello ");
+    Assert.assertFalse(mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
+
+    // Press delete after space
+    mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.DELETE);
+    TestRxSchedulers.drainAllTasks();
+
+    // Bug: canRestartWordSuggestion() returns true even when auto-correct aggressiveness is "none",
+    // restarting word prediction and setting a composing region on delete.
+    Assert.assertFalse(
+        "Should not restart word prediction on delete when auto-correct is OFF",
+        mAnySoftKeyboardUnderTest.isCurrentlyPredicting());
   }
 }

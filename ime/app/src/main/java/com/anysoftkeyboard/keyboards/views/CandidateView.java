@@ -35,6 +35,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.base.utils.Logger;
@@ -86,6 +87,8 @@ public class CandidateView extends View implements ThemeableChild {
   private int mTotalWidth;
 
   private boolean mAlwaysUseDrawText;
+  private boolean mIsDimmed;
+  private float mBackgroundDimAmount = AnyKeyboardViewBase.DEFAULT_BACKGROUND_DIM_AMOUNT;
   @NonNull private Disposable mDisposable = Disposables.empty();
 
   public CandidateView(Context context, AttributeSet attrs) {
@@ -113,12 +116,21 @@ public class CandidateView extends View implements ThemeableChild {
 
   @Override
   public void setThemeOverlay(OverlayData overlay) {
-    var normalized =
-        OverlayDataNormalizer.normalize(
-            overlay, 96, overlay.getPrimaryDarkColor(), overlay.getSecondaryTextColor());
-    mThemeOverlayCombiner.setOverlayData(normalized);
+    OverlayData normalizedOverlay = getNormalizedOverlayData(overlay);
+    mThemeOverlayCombiner.setOverlayData(normalizedOverlay);
     setBackgroundDrawable(mThemeOverlayCombiner.getThemeResources().getKeyboardBackground());
     invalidate();
+  }
+
+  @VisibleForTesting
+  static OverlayData getNormalizedOverlayData(OverlayData overlay) {
+    if (overlay.getPrimaryDarkColor() != Color.TRANSPARENT
+        || overlay.getSecondaryTextColor() != Color.TRANSPARENT) {
+      return OverlayDataNormalizer.normalize(
+          overlay, 96, overlay.getPrimaryDarkColor(), overlay.getSecondaryTextColor());
+    } else {
+      return overlay;
+    }
   }
 
   @Override
@@ -194,6 +206,10 @@ public class CandidateView extends View implements ThemeableChild {
             break;
           case R.attr.suggestionSelectionHighlight:
             mSelectionHighlight = a.getDrawable(remoteIndex);
+            break;
+          case R.attr.backgroundDimAmount:
+            mBackgroundDimAmount =
+                a.getFloat(remoteIndex, AnyKeyboardViewBase.DEFAULT_BACKGROUND_DIM_AMOUNT);
             break;
         }
       } catch (Exception e) {
@@ -363,6 +379,18 @@ public class CandidateView extends View implements ThemeableChild {
     mTotalWidth = x;
     if (mTargetScrollX != scrollX) {
       scrollToTarget();
+    }
+
+    if (mIsDimmed) {
+      paint.setColor((int) (mBackgroundDimAmount * 0xFF) << 24);
+      canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
+    }
+  }
+
+  public void setDimmed(boolean dimmed) {
+    if (mIsDimmed != dimmed) {
+      mIsDimmed = dimmed;
+      invalidate();
     }
   }
 

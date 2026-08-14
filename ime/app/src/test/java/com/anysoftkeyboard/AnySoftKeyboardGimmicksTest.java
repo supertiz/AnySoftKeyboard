@@ -6,6 +6,7 @@ import static com.anysoftkeyboard.keyboards.ExternalAnyKeyboardTest.SIMPLE_Keybo
 import android.content.res.Configuration;
 import android.os.SystemClock;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
 import androidx.test.core.app.ApplicationProvider;
@@ -17,6 +18,7 @@ import com.anysoftkeyboard.rx.TestRxSchedulers;
 import com.anysoftkeyboard.test.SharedPrefsHelper;
 import com.menny.android.anysoftkeyboard.R;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +29,11 @@ import org.robolectric.annotation.Config;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
+
+  @org.junit.Before
+  public void disableTagsSearch() {
+    SharedPrefsHelper.setPrefsValue(R.string.settings_key_search_quick_text_tags, false);
+  }
 
   @Test
   public void testDoubleSpace() {
@@ -408,7 +415,7 @@ public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
     Mockito.verify(inputConnection, Mockito.times(2))
         .sendKeyEvent(keyEventArgumentCaptor.capture());
 
-    Assert.assertEquals(2 /*down and up*/, keyEventArgumentCaptor.getAllValues().size());
+    Assert.assertEquals(2 /* down and up */, keyEventArgumentCaptor.getAllValues().size());
     Assert.assertEquals(
         KeyEvent.KEYCODE_ENTER, keyEventArgumentCaptor.getAllValues().get(0).getKeyCode());
     Assert.assertEquals(
@@ -430,7 +437,7 @@ public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
     Mockito.verify(inputConnection, Mockito.times(2))
         .sendKeyEvent(keyEventArgumentCaptor.capture());
 
-    Assert.assertEquals(2 /*down and up*/, keyEventArgumentCaptor.getAllValues().size());
+    Assert.assertEquals(2 /* down and up */, keyEventArgumentCaptor.getAllValues().size());
     Assert.assertEquals(
         KeyEvent.KEYCODE_ENTER, keyEventArgumentCaptor.getAllValues().get(0).getKeyCode());
     Assert.assertEquals(
@@ -457,9 +464,17 @@ public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
     mAnySoftKeyboardUnderTest.onPress(KeyCodes.SHIFT);
     mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.ENTER);
 
-    Mockito.verify(inputConnection).commitText("\n", 1);
-    // and never the key-events
-    Mockito.verify(inputConnection, Mockito.never()).sendKeyEvent(Mockito.any(KeyEvent.class));
+    // Shift+Enter should send a real KeyEvent with META_SHIFT_ON (not commitText)
+    // so that apps can distinguish Shift+Enter from plain Enter
+    ArgumentCaptor<KeyEvent> keyEventCaptor = ArgumentCaptor.forClass(KeyEvent.class);
+    Mockito.verify(inputConnection, Mockito.times(2)).sendKeyEvent(keyEventCaptor.capture());
+    List<KeyEvent> events = keyEventCaptor.getAllValues();
+    Assert.assertEquals(KeyEvent.ACTION_DOWN, events.get(0).getAction());
+    Assert.assertEquals(KeyEvent.KEYCODE_ENTER, events.get(0).getKeyCode());
+    Assert.assertEquals(KeyEvent.META_SHIFT_ON, events.get(0).getMetaState());
+    Assert.assertEquals(KeyEvent.ACTION_UP, events.get(1).getAction());
+    Assert.assertEquals(KeyEvent.KEYCODE_ENTER, events.get(1).getKeyCode());
+    Assert.assertEquals(KeyEvent.META_SHIFT_ON, events.get(1).getMetaState());
   }
 
   @Test
@@ -479,13 +494,26 @@ public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
         .verify(inputConnection, Mockito.never())
         .commitText(Mockito.eq("test"), Mockito.anyInt());
     inOrder.verify(inputConnection).finishComposingText();
-    inOrder.verify(inputConnection).commitText("\n", 1);
+    // Shift+Enter sends a real KeyEvent with META_SHIFT_ON instead of commitText("\n")
+    ArgumentCaptor<KeyEvent> keyEventCaptor = ArgumentCaptor.forClass(KeyEvent.class);
+    inOrder.verify(inputConnection, Mockito.times(2)).sendKeyEvent(keyEventCaptor.capture());
+    List<KeyEvent> events = keyEventCaptor.getAllValues();
+    Assert.assertEquals(KeyEvent.ACTION_DOWN, events.get(0).getAction());
+    Assert.assertEquals(KeyEvent.KEYCODE_ENTER, events.get(0).getKeyCode());
+    Assert.assertEquals(KeyEvent.META_SHIFT_ON, events.get(0).getMetaState());
+    Assert.assertEquals(KeyEvent.ACTION_UP, events.get(1).getAction());
+    Assert.assertEquals(KeyEvent.KEYCODE_ENTER, events.get(1).getKeyCode());
+    Assert.assertEquals(KeyEvent.META_SHIFT_ON, events.get(1).getMetaState());
     inOrder.verify(inputConnection).endBatchEdit();
   }
 
   @Test
   public void testDeleteWholeWordWhenShiftAndBackSpaceArePressed() {
+    EditorInfo editorInfo = createEditorInfoTextWithSuggestionsForSetUp();
+    editorInfo.inputType |= TextUtils.CAP_MODE_SENTENCES;
+    simulateOnStartInputFlow(false, editorInfo);
     TestInputConnection inputConnection = getCurrentTestInputConnection();
+    inputConnection.setRealCapsMode(true);
 
     mAnySoftKeyboardUnderTest.simulateTextTyping("hello");
     Assert.assertEquals("hello", inputConnection.getCurrentTextInInputConnection());
@@ -494,6 +522,28 @@ public class AnySoftKeyboardGimmicksTest extends AnySoftKeyboardBaseTest {
     mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.DELETE);
 
     Assert.assertEquals("", inputConnection.getCurrentTextInInputConnection());
+
+    mAnySoftKeyboardUnderTest.onRelease(KeyCodes.SHIFT);
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.getCurrentKeyboardForTests().isShifted());
+  }
+
+  @Test
+  public void testShiftEnterRestoresAutoCaps() {
+    EditorInfo editorInfo = createEditorInfoTextWithSuggestionsForSetUp();
+    editorInfo.inputType |= TextUtils.CAP_MODE_SENTENCES;
+    simulateOnStartInputFlow(false, editorInfo);
+    TestInputConnection inputConnection = getCurrentTestInputConnection();
+    inputConnection.setRealCapsMode(true);
+
+    mAnySoftKeyboardUnderTest.simulateTextTyping("hello");
+    Assert.assertEquals("hello", inputConnection.getCurrentTextInInputConnection());
+
+    mAnySoftKeyboardUnderTest.onPress(KeyCodes.SHIFT);
+    mAnySoftKeyboardUnderTest.simulateKeyPress(KeyCodes.ENTER);
+    mAnySoftKeyboardUnderTest.onRelease(KeyCodes.SHIFT);
+
+    Assert.assertEquals("hello\n", inputConnection.getCurrentTextInInputConnection());
+    Assert.assertTrue(mAnySoftKeyboardUnderTest.getCurrentKeyboardForTests().isShifted());
   }
 
   @Test

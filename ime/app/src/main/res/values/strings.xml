@@ -462,7 +462,7 @@
                   checked in override default dictionary</string>
 
 
-    <string name="try_split_words_for_correction">Correct by splitting typed word</string>
+    <string name="try_split_words_for_correction">[beta] Correct by splitting typed word</string>
     <string name="try_split_words_for_correction_summary_on">Split typed word by guessing missing SPACE.</string>
     <string name="try_split_words_for_correction_summary_off"/>
 
@@ -919,6 +919,7 @@
 
     <string name="gesture_typing_settings">Gesture-Typing ➿</string>
     <string name="gesture_typing_summary">Input a word by sliding your finger through its letters.</string>
+    <string name="gesture_typing_disabled_low_ram">Gesture typing is disabled on low-memory devices to ensure smooth typing performance.</string>
     <string name="gesture_typing_action">Enable gesture-typing [BETA]</string>
     <string name="gesture_typing_alert_title">BETA Feature!</string>
     <string name="gesture_typing_alert_message">The gesture-typing ➿ feature is at <b>beta</b> maturity. It has some bugs, not that fast, and not that complete.\nSaying that, you should try it out.</string>
@@ -946,6 +947,8 @@
 
     <string name="tip_swipe_from_backspace_to_clear">Tip: you can swipe-left from the backspace to clear the word!</string>
     <string name="notification_read_contacts_ticker">Contacts permission needed</string>
+    <string name="notification_action_approve_permission">Approve permission</string>
+    <string name="notification_action_dismiss_permission">Disable Contacts Dictionary</string>
     <string name="wizard_allow_notification_permission">Allow notifications from AnySoftKeyboard</string>
     <string name="setup_wizard_step_notification_permissions_details">In rare cases (for example app crashes) we would need to post a device notification. This is recommended but disallow notification will not affect the behavior of this app.</string>
     <string name="wizard_skip_notification_permission">Do not allow notifications</string>
@@ -956,4 +959,8 @@
     <string name="loading">Loading…</string>
     <string name="need_enable_mic_permission">"You need to enable microphone permission."</string>
     <string name="pause">Pause</string>
+
+    <string name="touch_trajectory_correction_title">Touch trajectory correction</string>
+    <string name="touch_trajectory_correction_summary_on">Improve key accuracy by combining touch-down and lift-off coordinates during fast typing</string>
+    <string name="touch_trajectory_correction_summary_off">Rely strictly on touch lift-off coordinates</string>
 </resources>

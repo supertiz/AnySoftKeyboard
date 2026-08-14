@@ -561,7 +561,8 @@
     <!-- abbreviations editor -->
     <string name="abbreviation_dict_settings_titlebar">შემოკლებების შემსწორებელი</string>
     <string name="abbreviation_dict_editor">შემოკლებების შემსწორებელი</string>
-    <string name="abbreviation_dict_word_template">        <i>
+    <string name="abbreviation_dict_word_template">
+        <i>
             <xliff:g id="abbreviation">%s</xliff:g>
         </i>
         \u0020\u2192\u0020
@@ -648,7 +649,8 @@
     <string name="setup_wizard_step_three_title">შემდეგი ნაბიჯი</string>
     <string name="setup_wizard_step_three_details">გმადლობთ, რომ აირჩიეთ <i>AnySoftKeyboard</i>.
     </string>
-    <string name="setup_wizard_step_three_details_done">        <b>მზადაა 🎉\nგახსენით სასურველი აპი და გამოცადეთ.</b>
+    <string name="setup_wizard_step_three_details_done">
+        <b>მზადაა 🎉\nგახსენით სასურველი აპი და გამოცადეთ.</b>
     </string>
     <string name="setup_wizard_step_three_details_actions">ან აქვე შეგიძლიათ შეცვალოთ და მოირგოთ
         კლავიატურა თქვენი გემოვნებით:
@@ -759,6 +761,7 @@
     <string name="allow_layouts_to_provide_generic_rows_on_summary">განლაგებებში საერთო რიგის ჩამატების ნებართვა.</string>
     <string name="gesture_typing_settings">ჟესტებით აკრეფა ➿</string>
     <string name="gesture_typing_summary">სიტყვის შეყვანა, შემადგენელ ასონიშნებზე თითის გადასმით.</string>
+    <string name="gesture_typing_disabled_low_ram">ჟესტები გათიშულია მცირე მეხსიერების მქონე მოწყობილობებზე ტექსტის შეუფერხებლად აკრეფისთვის.</string>
     <string name="gesture_typing_action">ჩაირთოს ჟესტებით აკრეფა [BETA]</string>
     <string name="gesture_typing_alert_title">BETA შესაძლებლობა!</string>
     <string name="gesture_typing_alert_message">ჟესტებით აკრეფის ➿ შესაძლებლობა ჯერ საცდელ, <b>Beta</b>-საფეხურზეა. ხარვეზებიანი, ნაკლებად სწრაფი და დაუსრულებელია.\nმოკლედ, ჯობია, თავად მოსინჯოთ.</string>
@@ -779,6 +782,8 @@
     <string name="delete_all_clipboard_entries">აღებული ასლის წაშლა</string>
     <string name="tip_swipe_from_backspace_to_clear">რჩევა: უკუშლიდან მარცხნივ გაუსვით სიტყვის მოცილებისთვის!</string>
     <string name="notification_read_contacts_ticker">კონტაქტებზე ნებართვაა საჭირო</string>
+    <string name="notification_action_approve_permission">ნებართვის დამოწმება</string>
+    <string name="notification_action_dismiss_permission">ნომრების ლექსიკონის გამორთვა</string>
     <string name="wizard_allow_notification_permission">შეტყობინენებების ნების დართვა AnySoftKeyboard-დან</string>
     <string name="setup_wizard_step_notification_permissions_details">იშვიათად (მაგალითად უეცარი გათიშვისას) საჭიროა გამოჩნდეს შეტყობინება მოწყობილობაზე. სასურველია დართოთ ნება, მაგრამ ამის გარეშეც ჩვეულებრივ იმუშავებს.</string>
     <string name="wizard_skip_notification_permission">შეტყობინებების უარყოფა</string>

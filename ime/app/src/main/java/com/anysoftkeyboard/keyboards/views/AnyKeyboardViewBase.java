@@ -138,7 +138,9 @@ public class AnyKeyboardViewBase extends View implements InputViewBinder, Pointe
   /** Notes if the keyboard just changed, so that we could possibly reallocate the mBuffer. */
   protected boolean mKeyboardChanged;
 
-  protected float mBackgroundDimAmount;
+  public static final float DEFAULT_BACKGROUND_DIM_AMOUNT = 0.5f;
+
+  protected float mBackgroundDimAmount = DEFAULT_BACKGROUND_DIM_AMOUNT;
   protected float mOriginalVerticalCorrection;
   protected CharSequence mNextAlphabetKeyboardName;
   protected CharSequence mNextSymbolsKeyboardName;
@@ -373,6 +375,15 @@ public class AnyKeyboardViewBase extends View implements InputViewBinder, Pointe
             .subscribe(
                 value -> mSharedPointerTrackersData.multiTapKeyTimeout = value,
                 GenericOnError.onError("failed to get settings_key_multitap_timeout")));
+    mDisposables.add(
+        rxSharedPrefs
+            .getBoolean(
+                R.string.settings_key_touch_trajectory_correction,
+                R.bool.settings_default_touch_trajectory_correction)
+            .asObservable()
+            .subscribe(
+                value -> mSharedPointerTrackersData.applyTouchTrajectoryCorrection = value,
+                GenericOnError.onError("failed to get settings_key_touch_trajectory_correction")));
   }
 
   protected static boolean isSpaceKey(final AnyKey key) {
