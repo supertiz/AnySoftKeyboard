@@ -40,6 +40,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.collection.SparseArrayCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
+
+import com.anysoftkeyboard.addons.PackagesChangedReceiver;
+import com.anysoftkeyboard.addons.UserUnlockedReceiver;
 import com.anysoftkeyboard.api.KeyCodes;
 import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.dictionaries.DictionaryAddOnAndBuilder;
